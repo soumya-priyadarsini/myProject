@@ -10,13 +10,13 @@ interface IKey {
 }
 
 const getKey: IKey = {
-  registration: 'registration',
+  registra: 'registra',
   
 };
 
 const handleQueue = async (queueName: any, msg: any) => {
   switch (queueName) {
-    case 'registration':
+    case 'registra':
       AuthActions.registration(msg);
       break;
     
@@ -39,7 +39,7 @@ const initMessageQueueListeners = async (): Promise<void> => {
     logger.info(`initialized MessageQueueListeners`);
     queueList.map(async (queueName) => {
       // Step 1: assert queues
-      await queueService.assertExchange(queueName);
+      await queueService.assertQueue(queueName);
       // Step 2: bind queues to exchange
       await queueService.bindQueue(config.rabbitmqConfig.exchangeName, queueName, getKey[queueName]);
       // Step 3: Listen to queues

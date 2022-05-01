@@ -35,7 +35,7 @@ export const register = async(
         await rabbitmqService.assertExchange(config.rabbitmqConfig.exchangeName)
         const isSuccessfulPush = await rabbitmqService.pushToExchange(
             config.rabbitmqConfig.exchangeName,
-            'registration',
+            'registra',
             { userId: user._id}
         )
         if (isSuccessfulPush) {

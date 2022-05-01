@@ -28,7 +28,7 @@ const config:ApiKeyConfig = {
         username: process.env.RABBITMQ_USERNAME || 'guest',
         password: process.env.RABBITMQ_PASSWORD || 'guest',
         queues: [
-            'registration'
+            'registra'
         ],
         exchangeName: 'ownpr'
     }

@@ -27,6 +27,30 @@ const createConnection = async (options: IConnectionString) => {
 
 const createChannel = (connection: amqp.Connection) => connection.createChannel();
 
+export const createQueueAndDeadLetterQueue = async (channel: any, queueName: string) => {
+    const deadLetterQueueName = `${queueName}-missed`;
+  
+    const queueOptions = {
+      durable: true,
+      deadLetterExchange: '',
+      deadLetterRoutingKey: deadLetterQueueName
+    };
+    const deadLetterQueueOptions = {
+      durable: true
+    };
+  
+    await channel.assertQueue(deadLetterQueueName, deadLetterQueueOptions);
+    await channel.assertQueue(queueName, queueOptions);
+  };
+  // const publishMessage = async (channel: any, queueName: string, msg: any, additionalPublishingOptions = {}, messageTtl = 30 * 60 * 1000) => {
+  //   const publishOptions = {
+  //     persistent: true,
+  //     ...additionalPublishingOptions,
+  //     expiration: messageTtl
+  //   };
+  //   const messageBuffer = Buffer.from(JSON.stringify(msg));
+  //   return channel.sendToQueue(queueName, messageBuffer, publishOptions);
+  // };
 class QueueService {
     queueConnection: any;
     queueChannels: any;
@@ -39,7 +63,44 @@ class QueueService {
         this.rabbitmqConfig = config;
         this.connectionChannel = null;
     }
-
+    async assertQueue(queueName: string) {
+        try {
+          if (!this.queueConnection) {
+            this.queueConnection = await createConnection(this.rabbitmqConfig);
+          }
+          if (!this.queueChannels[queueName]) {
+            this.queueChannels[queueName] = await createChannel(this.queueConnection);
+          }
+          await createQueueAndDeadLetterQueue(this.queueChannels[queueName], queueName);
+        } catch (e) {
+          const errorMessage = `Queue ${queueName} connection/channel/asserts error`;
+          this.queueConnection = null;
+          this.queueChannels = {};
+    
+          logger.error(errorMessage, e);
+          throw new Error(errorMessage);
+        }
+      }
+      // async pushOnQueue(queueName: string, msg: any) {
+      //   const TIMEOUT_SECONDS = 1;
+      //   const MAX_QUEUE_RETRIES = 3;
+      //   let queueRetryCount = 0;
+      //   while (queueRetryCount < MAX_QUEUE_RETRIES) {
+      //     try {
+      //       await publishMessage(this.queueChannels[queueName], queueName, msg);
+      //       return true;
+      //     } catch (e) {
+      //       if (queueRetryCount < MAX_QUEUE_RETRIES) {
+      //         queueRetryCount += 1;
+      //         logger.error(`Posting to message queue failed, retrying (${queueRetryCount}): ${msg}`);
+      //         await doTimeout(TIMEOUT_SECONDS);
+      //       } else {
+      //         return false;
+      //       }
+      //     }
+      //   }
+      //   return true;
+      // }
     async consumeFromQueue(queueName: any, callback: any) { // eslint-disable-line
         try {
             return await this.connectionChannel.consume(
@@ -106,6 +167,7 @@ class QueueService {
 
         return true;
     }
+
     async bindQueue(exchangeName: string, queueName: string, routingKey: string) {
         try {
           if (!this.queueConnection) {
@@ -123,8 +185,6 @@ class QueueService {
           throw new Error(errorMessage);
         }
       }
-    
-
 }
 
 export default QueueService;
